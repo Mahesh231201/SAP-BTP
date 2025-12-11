@@ -1,0 +1,78 @@
+@Metadata.layer: #PARTNER
+
+@UI:{ headerInfo:{ typeName: 'Travel',
+                   typeNamePlural: 'Travels',
+                   title:{ type: #STANDARD,value: 'TravelId' }} }
+
+annotate entity Z23_TRAVEL_C with
+{
+
+  @UI.facet: [{
+
+                  id:'Travel',
+                  purpose: #STANDARD,
+                  type: #IDENTIFICATION_REFERENCE,
+                  label: 'Travel',
+                  position: 10
+
+               },
+
+               {
+
+                id:'Booking',
+                purpose: #STANDARD,
+                type:#LINEITEM_REFERENCE,
+                label: 'Bookings',
+                targetElement: '_Booking',
+                position: 20
+
+                }]
+
+  @UI.hidden: true
+  TravelUuid;
+  @UI.lineItem: [{ position: 10, importance: #HIGH },
+                 { type: #FOR_ACTION, dataAction: 'AcceptTravel', label: 'Accept Travel', invocationGrouping: #CHANGE_SET  },
+                 { type: #FOR_ACTION, dataAction: 'RejectTravel', label: 'Reject Travel', invocationGrouping: #CHANGE_SET  },
+                 { type: #FOR_ACTION, dataAction: 'DeductDiscount', label: 'Deduct Discount', invocationGrouping: #CHANGE_SET  }
+                ]
+  @UI.identification: [{ position: 10, importance: #HIGH }]
+  TravelId;
+  @UI.lineItem: [{ position: 20, importance: #HIGH }]
+  @UI.identification: [{ position: 20, importance: #HIGH }]
+  AgencyId;
+  @UI.lineItem: [{ position: 30, importance: #HIGH }]
+  @UI.identification: [{ position: 30, importance: #HIGH }]
+  CustomerId;
+  @UI.lineItem: [{ position: 40, importance: #HIGH }]
+  @UI.identification: [{ position: 40, importance: #HIGH }]
+  BeginDate;
+  @UI.lineItem: [{ position: 50, importance: #HIGH }]
+  @UI.identification: [{ position: 50, importance: #HIGH }]
+  EndDate;
+  @UI.lineItem: [{ position: 60, importance: #HIGH }]
+  @UI.identification: [{ position: 60, importance: #HIGH }]
+  BookingFee;
+  @UI.lineItem: [{ position: 70, importance: #HIGH }]
+  @UI.identification: [{ position: 70, importance: #LOW }]
+  TotalPrice;
+  // CurrencyCode;
+  @UI.lineItem: [{ position: 80, importance: #LOW }]
+  @UI.identification: [{ position: 80, importance: #HIGH }]
+  Description;
+  @UI.lineItem: [{ position: 90, importance: #LOW }]
+  @UI.identification: [{ position: 90, importance: #HIGH }]
+  OverallStatus;
+
+
+
+  // LocalCreatedBy;
+  // LocalCreatedAt;
+  // LocalLastChangedBy;
+  // LocalLastChangedAt;
+  // LastChangedAt;
+  //
+
+  // /* Associations */
+  // _Booking;
+
+}

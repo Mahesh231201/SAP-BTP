@@ -1,0 +1,45 @@
+projection;
+strict ( 2 );
+use draft;
+use side effects;
+
+define behavior for Z23_TRAVEL_C alias Travel
+{
+  use create;
+  use update;
+  use delete;
+
+  use action Activate;
+  use action Discard;
+  use action Edit;
+  use action Prepare;
+  use action Resume;
+
+  //  ACTIONS
+
+  use action AcceptTravel;
+  use action RejectTravel;
+
+  use action DeductDiscount;
+  use function GetDefaultsForDeductDiscount;
+
+  use association _Booking { create; with draft; }
+}
+
+define behavior for Z23_BOOKING_C alias Booking
+{
+  use update;
+  use delete;
+
+  use association _Travel { with draft; }
+  use association _BookingSupplement { create; with draft; }
+}
+
+define behavior for Z23_BK_SUPPL_C alias BookingSupplement
+{
+  use update;
+  use delete;
+
+  use association _Travel { with draft; }
+  use association _Booking { with draft; }
+}

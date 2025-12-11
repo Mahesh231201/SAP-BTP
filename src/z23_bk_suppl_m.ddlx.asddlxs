@@ -1,0 +1,36 @@
+@Metadata.layer: #PARTNER
+annotate entity Z23_BK_SUPPL_C with
+{
+
+  @UI.facet: [{
+
+              id: 'BookingSuppliment',
+              purpose: #STANDARD,
+              type: #IDENTIFICATION_REFERENCE,
+              label: 'Booking Suppliment',
+              position: 10
+
+             }]
+
+  @UI.hidden: true
+  BooksupplUuid;
+  @UI.hidden: true
+  travelUuid;
+  @UI.hidden: true
+  BookingUuid;
+  @UI.lineItem: [{ position: 10,importance: #HIGH }]
+  @UI.identification: [{ position: 10,importance: #HIGH  }]
+  BookingSupplementId;
+  @UI.lineItem: [{ position: 10,importance: #HIGH }]
+  @UI.identification: [{ position: 10,importance: #HIGH  }]
+  SupplementId;
+  @UI.lineItem: [{ position: 10,importance: #HIGH }]
+  @UI.identification: [{ position: 10,importance: #HIGH  }]
+  Price;
+
+  //   CurrencyCode;
+  //   LocalLastChangedAt;
+  //   /* Associations */
+  //   _booking;
+  //   _travel;
+}

@@ -1,0 +1,6 @@
+@EndUserText.label: 'Service Definiton For Travel Details'
+define service Z23_TRAVEL_SD {
+  expose Z23_TRAVEL_C;
+  expose Z23_BOOKING_C;
+  expose Z23_BK_SUPPL_C;
+}
