@@ -35,12 +35,19 @@ annotate entity Z23_BOOKING_C with
   BookingDate;
   @UI.lineItem: [{ position: 30, importance: #HIGH }]
   @UI.identification: [{ position: 30, importance: #HIGH }]
+  @Consumption.valueHelpDefinition: [ { entity:{ name: '/DMO/I_Customer_StdVH',element: 'CustomerID'  }, useForValidation: true } ]     //  ValueHelp => F4 Help
   CustomerId;
   @UI.lineItem: [{ position: 40, importance: #HIGH }]
   @UI.identification: [{ position: 40, importance: #HIGH }]
+  @Consumption.valueHelpDefinition: [{ entity:{ name: '/DMO/I_Flight_StdVH', element: 'AirlineID' } }]       //  ValueHelp => F4 Help
   CarrierId;
   @UI.lineItem: [{ position: 50, importance: #HIGH }]
   @UI.identification: [{ position: 50, importance: #HIGH }]
+  @Consumption.valueHelpDefinition: [{ entity:{ name: '/DMO/I_Flight_StdVH', element: 'ConnectionID' },
+                                        additionalBinding: [{ localElement: 'CarrierId', element: 'AirlineID', usage: #FILTER_AND_RESULT  },
+                                                            { localElement: 'FlightDate', element: 'FlightDate', usage: #RESULT },
+                                                            { localElement: 'FlightPrice', element: 'Price', usage: #RESULT },
+                                                            { localElement: 'CurrencyCode', element: 'CurrencyCode', usage: #RESULT }] }]
   ConnectionId;
   @UI.lineItem: [{ position: 60, importance: #HIGH }]
   @UI.identification: [{ position: 60, importance: #HIGH }]
@@ -48,7 +55,8 @@ annotate entity Z23_BOOKING_C with
   @UI.lineItem: [{ position: 70, importance: #HIGH }]
   @UI.identification: [{ position: 70, importance: #HIGH }]
   FlightPrice;
-  //CurrencyCode;
+  @Consumption.valueHelpDefinition: [{ entity:{ name: 'I_CurrencyStdVH',element: 'Currency' } }] //   //  ValueHelp => F4 Help
+  CurrencyCode;
   @UI.lineItem: [{ position: 80, importance: #HIGH }]
   @UI.identification: [{ position: 80, importance: #HIGH }]
   BookingStatus;

@@ -4,6 +4,7 @@ with draft;
 
 define behavior for Z23_TRAVEL_I alias Travel
 persistent table z23_travel
+with additional save
 draft table z23_d_travel
 lock master
 total etag LocalLastChangedAt
@@ -14,9 +15,9 @@ etag master LocalLastChangedAt                            //  SYSTEM DETECT THE 
   update;       //  USER CAN UPDATE OR EDIT THE EXISTING TRAVELS
   delete;       //  USER CAN CANCEL / DELETE THE ENTIRE TRAVEL { INCLUDING ITS CHILD BOOKING AND BOOKINGSUPPL }
   field ( numbering : managed, readonly ) TravelUuid;    //  NONEDITABLE FIELD IN THE FIORI SCREEN
-  field ( readonly ) TravelId, OverallStatus;
+  field ( readonly ) TravelId, OverallStatus, TotalPrice;
+  field ( features : instance ) BookingFee;
   association _Booking { create; with draft; }           //  USER CAN DO THE BOOKINGS TO THE CURRENT TRAVEL
-
 
   // Draft Related Buttons
   // We can Enable the Draft Related Functionalities
@@ -25,7 +26,11 @@ etag master LocalLastChangedAt                            //  SYSTEM DETECT THE 
   draft action Discard;
   draft action Resume;
   draft action Activate optimized;
-  draft determine action Prepare;
+  draft determine action Prepare
+  { validation validatecustomer;
+    validation validateagency;
+    validation validatedates; }
+
 
   //  DETERMINATIONS
 
@@ -33,13 +38,34 @@ etag master LocalLastChangedAt                            //  SYSTEM DETECT THE 
   determination setOverallStatus on modify { create; update; }
   determination CalculateTotalPrice on modify { create; field BookingFee, CurrencyCode; }
 
+  //  VALIDATIONS
+
+  validation ValidateCustomer on save { create; field CustomerId; }
+  validation ValidateAgency on save { create; field AgencyId; }
+  validation ValidateDates on save { create; field BeginDate, EndDate; }
+
   //  ACTIONS
 
-  action AcceptTravel result [1] $self;
-  action RejectTravel result [1] $self;
-
+  action ( features : instance ) AcceptTravel result [1] $self;
+  action ( features : instance ) RejectTravel result [1] $self;
   action DeductDiscount parameter Z23_A_DISCOUNT result [1] $self { default function GetDefaultsForDeductDiscount; }
   internal action recalctotalprice;
+
+  determine action validatecustomerid { validation ValidateCustomer; }
+  determine action validateagencyid { validation ValidateAgency; }
+  determine action validatedatesval { validation ValidateDates; }
+
+  //  SIDE EFFECTS
+
+  side effects
+  {
+
+    field BookingFee affects field TotalPrice;
+    determine action validateCustomerid executed on field CustomerId affects messages;
+    determine action validateAgencyid executed on field AgencyId affects messages;
+    determine action validatedatesval executed on field BeginDate, field EndDate affects messages;
+
+  }
 
   //  Do mapping between CDS Entity Alias Names and Data base level Fields
   mapping for z23_travel //  database table
@@ -66,6 +92,7 @@ etag master LocalLastChangedAt                            //  SYSTEM DETECT THE 
 
 }
 
+//              BOOKING
 
 define behavior for Z23_BOOKING_I alias Booking
 persistent table z23_booking
@@ -74,15 +101,16 @@ lock dependent by _Travel
 authorization dependent by _Travel
 etag master LocalLastChangedAt
 {
-  update;
-  delete;
-  field ( readonly ) travelUuid;
+  update; // user can update or edit the booking once they inside the travel instance
+  delete; // user can delete/cancel the Booking and its child Booking suppl
+  field ( readonly ) travelUuid, BookingId, BookingDate;
   field ( numbering : managed, readonly ) BookingUuid;
   association _Travel { with draft; }
   association _BookingSupplement { create; with draft; }
 
   //  DETERMINATIONS
   determination SetBookingId on save { create; }
+  determination SetBookingDate on save { create; }
   determination CalculateTotalPrice on modify { create; field FlightPrice, CurrencyCode; }
 
   //  SIDE EFFECTS
@@ -114,6 +142,9 @@ etag master LocalLastChangedAt
 
 }
 
+
+//          BOOKING SUPPLEMENT
+
 define behavior for Z23_BK_SUPPL_I alias BookingSupplement
 persistent table z23_bk_suppl
 draft table z23_d_bk_suppl
@@ -128,11 +159,12 @@ etag master LocalLastChangedAt
   association _Travel { with draft; }
   association _Booking { with draft; }
 
-  determination SetBookingSupplId on save { create; }
+  //          DETERMINATIONS
 
+  determination SetBookingSupplId on save { create; }
   determination CalculateTotalPrice on modify { create; field Price, CurrencyCode; }
 
-  //  SIDE EFFECTS
+  //          SIDE EFFECTS
 
   side effects
   {

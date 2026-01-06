@@ -9,22 +9,28 @@ define behavior for Z23_TRAVEL_C alias Travel
   use update;
   use delete;
 
-  use action Activate;
-  use action Discard;
   use action Edit;
-  use action Prepare;
+  use action Discard;
   use action Resume;
+  use action Prepare;
+  use action Activate;
 
   //  ACTIONS
 
   use action AcceptTravel;
   use action RejectTravel;
-
   use action DeductDiscount;
   use function GetDefaultsForDeductDiscount;
 
+  use action validatecustomerid;
+  use action validateagencyid;
+  use action validatedatesval;
+
+
   use association _Booking { create; with draft; }
 }
+
+//          BOOKING
 
 define behavior for Z23_BOOKING_C alias Booking
 {
@@ -34,6 +40,8 @@ define behavior for Z23_BOOKING_C alias Booking
   use association _Travel { with draft; }
   use association _BookingSupplement { create; with draft; }
 }
+
+//          BOOKING SUPPLEMENT
 
 define behavior for Z23_BK_SUPPL_C alias BookingSupplement
 {

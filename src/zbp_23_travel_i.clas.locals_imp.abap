@@ -1,9 +1,95 @@
+CLASS lsc_z23_travel_i DEFINITION INHERITING FROM cl_abap_behavior_saver.
+
+  PROTECTED SECTION.
+
+    METHODS save_modified REDEFINITION.
+
+ENDCLASS.
+
+CLASS lsc_z23_travel_i IMPLEMENTATION.
+
+  METHOD save_modified.
+
+    DATA : travel_log        TYPE STANDARD TABLE OF z23_travel_log,
+           travel_log_create TYPE STANDARD TABLE OF z23_travel_log,
+           travel_log_update TYPE STANDARD TABLE OF z23_travel_log.
+
+    IF create-travel IS NOT INITIAL.
+
+      travel_log = CORRESPONDING #( create-travel ).
+
+      LOOP AT travel_log ASSIGNING FIELD-SYMBOL(<lfs_travel_log>).
+
+        <lfs_travel_log>-changing_operation = 'CREATE'.
+        GET TIME STAMP FIELD <lfs_travel_log>-created_at.
+        TRY.
+            <lfs_travel_log>-change_id = cl_system_uuid=>create_uuid_x16_static(  ).
+          CATCH cx_uuid_error.
+        ENDTRY.
+
+        IF create-travel[ 1 ]-%control-BookingFee = cl_abap_behv=>flag_changed.
+          <lfs_travel_log>-changed_field_name = 'Booking Fee'.
+          <lfs_travel_log>-changed_value = create-travel[ 1 ]-BookingFee.
+        ENDIF.
+
+
+        IF create-travel[ 1 ]-%control-AgencyId = cl_abap_behv=>flag_changed.
+          <lfs_travel_log>-changed_field_name = 'Agency Id'.
+          <lfs_travel_log>-changed_value = create-travel[ 1 ]-AgencyId.
+        ENDIF.
+
+      ENDLOOP.
+
+      MODIFY  z23_travel_log FROM TABLE @travel_log_create.
+
+    ENDIF.
+
+    IF update-travel IS NOT INITIAL.
+
+      travel_log = CORRESPONDING #( update-travel ).
+      LOOP AT travel_log ASSIGNING FIELD-SYMBOL(<lfs_travel_update>).
+
+        <lfs_travel_update>-changing_operation = 'UPDATE'.
+        GET TIME STAMP FIELD <lfs_travel_UPDATE>-created_at.
+        TRY.
+            <lfs_travel_update>-change_id = cl_system_uuid=>create_uuid_x16_static(  ).
+          CATCH cx_uuid_error.
+        ENDTRY.
+
+        IF update-travel[ 1 ]-%control-BookingFee = cl_abap_behv=>flag_changed.
+          <lfs_travel_update>-changed_field_name = 'Booking Fee'.
+          <lfs_travel_update>-changed_value = create-travel[ 1 ]-BookingFee.
+        ENDIF.
+
+
+        IF update-travel[ 1 ]-%control-AgencyId = cl_abap_behv=>flag_changed.
+          <lfs_travel_update>-changed_field_name = 'Agency Id'.
+          <lfs_travel_update>-changed_value = create-travel[ 1 ]-AgencyId.
+        ENDIF.
+
+      ENDLOOP.
+
+      MODIFY  z23_travel_log FROM TABLE @travel_log_update.
+
+    ENDIF.
+
+    IF delete-travel IS NOT INITIAL.
+
+
+
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS lhc_bookingsupplement DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
   PRIVATE SECTION.
 
     METHODS SetBookingSupplId FOR DETERMINE ON SAVE
       IMPORTING keys FOR BookingSupplement~SetBookingSupplId.
+
     METHODS CalculateTotalPrice FOR DETERMINE ON MODIFY
       IMPORTING keys FOR BookingSupplement~CalculateTotalPrice.
 
@@ -102,6 +188,9 @@ CLASS lhc_booking DEFINITION INHERITING FROM cl_abap_behavior_handler.
     METHODS CalculateTotalPrice FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Booking~CalculateTotalPrice.
 
+    METHODS SetBookingDate FOR DETERMINE ON SAVE
+      IMPORTING keys FOR Booking~SetBookingDate.
+
 ENDCLASS.
 
 CLASS lhc_booking IMPLEMENTATION.
@@ -187,6 +276,31 @@ CLASS lhc_booking IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD SetBookingDate.
+
+    READ ENTITIES OF z23_travel_i IN LOCAL MODE
+         ENTITY Booking
+         FIELDS ( BookingDate )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(Bookings).
+
+    DELETE bookings WHERE BookingDate IS NOT INITIAL.
+
+    CHECK bookings IS NOT INITIAL.
+
+    LOOP AT bookings ASSIGNING FIELD-SYMBOL(<booking>).
+
+      <booking>-BookingDate = cl_abap_context_info=>get_system_date( ).
+
+    ENDLOOP.
+
+    MODIFY ENTITIES OF z23_travel_i IN LOCAL MODE
+           ENTITY Booking
+           UPDATE FIELDS ( BookingDate )
+           WITH CORRESPONDING #( Bookings ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 
@@ -206,6 +320,7 @@ CLASS lhc_Travel DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
     METHODS setOverallStatus FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Travel~setOverallStatus.
+
     METHODS AcceptTravel FOR MODIFY
       IMPORTING keys FOR ACTION Travel~AcceptTravel RESULT result.
 
@@ -223,6 +338,17 @@ CLASS lhc_Travel DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
     METHODS CalculateTotalPrice FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Travel~CalculateTotalPrice.
+
+    METHODS ValidateCustomer FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Travel~ValidateCustomer.
+
+    METHODS ValidateAgency FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Travel~ValidateAgency.
+
+    METHODS ValidateDates FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Travel~ValidateDates.
+    METHODS get_instance_features FOR INSTANCE FEATURES
+      IMPORTING keys REQUEST requested_features FOR Travel RESULT result.
 
 ENDCLASS.
 
@@ -290,7 +416,7 @@ CLASS lhc_Travel IMPLEMENTATION.
     ENTITY travel
     UPDATE FIELDS ( OverallStatus )
     WITH VALUE #( FOR key IN keys ( %tky = key-%tky
-                OverallStatus = 'A' ) ).
+                                    OverallStatus = 'A' ) ).
 
     READ ENTITIES OF z23_travel_i IN LOCAL MODE
     ENTITY Travel
@@ -382,7 +508,6 @@ CLASS lhc_Travel IMPLEMENTATION.
     result = VALUE #( FOR ls_travel IN lt_travel_updated ( %tky = ls_travel-%tky
                                                            %param = ls_travel ) ).
 
-
   ENDMETHOD.
 
   METHOD GetDefaultsForDeductDiscount.
@@ -394,14 +519,15 @@ CLASS lhc_Travel IMPLEMENTATION.
     RESULT DATA(travels).
 
     LOOP AT travels INTO DATA(travel).
+
       IF travel-TotalPrice >= 5000.
         APPEND VALUE #( %tky = travel-%tky
                         %param-discount_percent = 30 ) TO result.
       ELSE.
         APPEND VALUE #( %tky = travel-%tky
                      %param-discount_percent = 15 ) TO result.
-
       ENDIF.
+
     ENDLOOP.
 
 
@@ -485,12 +611,14 @@ CLASS lhc_Travel IMPLEMENTATION.
 
       ENDIF.
 
+      MODIFY ENTITIES OF z23_travel_i IN LOCAL MODE
+      ENTITY Travel
+      UPDATE FIELDS ( TotalPrice )
+      WITH CORRESPONDING #( travels ).
+
     ENDLOOP.
 
-    MODIFY ENTITIES OF z23_travel_i IN LOCAL MODE
-    ENTITY Travel
-    UPDATE FIELDS ( TotalPrice )
-    WITH CORRESPONDING #( travels ).
+
 
   ENDMETHOD.
 
@@ -500,6 +628,157 @@ CLASS lhc_Travel IMPLEMENTATION.
     ENTITY Travel
     EXECUTE recalctotalprice
     FROM CORRESPONDING #( keys ).
+
+  ENDMETHOD.
+
+  METHOD ValidateCustomer.
+
+    READ ENTITIES OF z23_travel_i IN LOCAL MODE
+    ENTITY Travel
+    FIELDS ( CustomerId )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(Travels).
+
+    DATA : customers TYPE SORTED TABLE OF /dmo/customer WITH UNIQUE KEY customer_id.
+    customers = CORRESPONDING #( travels DISCARDING DUPLICATES MAPPING customer_id = CustomerId EXCEPT * ).
+
+    SELECT FROM /dmo/customer FIELDS customer_id
+    FOR ALL ENTRIES IN @customers
+    WHERE customer_id = @customers-customer_id
+    INTO TABLE @DATA(validatecustomers).
+
+    LOOP AT travels INTO DATA(travel).
+      APPEND VALUE #( %tky = travel-%tky
+                      %state_area = 'Validate Customer' ) TO reported-travel.
+
+      IF travel-CustomerId IS NOT INITIAL AND NOT line_exists( validatecustomers[ customer_id = travel-CustomerId ]  ) .
+
+        APPEND VALUE #( %tky = travel-%tky ) TO failed-travel.
+
+        APPEND VALUE #( %tky = travel-%tky
+                        %msg = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = |Not A Valid Customer { travel-CustomerId } | )
+                        %element-customerid = if_abap_behv=>mk-on )  TO reported-travel.
+
+      ENDIF.
+
+    ENDLOOP.
+
+
+  ENDMETHOD.
+
+  METHOD ValidateAgency.
+
+  READ ENTITIES OF z23_travel_i IN LOCAL MODE
+  ENTITY Travel
+  FIELDS ( AgencyId )
+  WITH CORRESPONDING #( keys )
+  RESULT DATA(Travels).
+
+    DATA : Agencies TYPE SORTED TABLE OF /dmo/agency WITH UNIQUE KEY agency_id.
+    Agencies = CORRESPONDING #( travels DISCARDING DUPLICATES MAPPING agency_id = AgencyId EXCEPT * ).
+
+    SELECT FROM /dmo/agency FIELDS agency_id
+    FOR ALL ENTRIES IN @agencies
+    WHERE agency_id = @agencies-agency_id
+    INTO TABLE @DATA(valideAgencies).
+
+    LOOP AT travels INTO DATA(travel).
+
+      IF travel-AgencyId IS NOT INITIAL AND NOT line_exists( valideagencies[ agency_id = travel-AgencyId ]  ) .
+
+        APPEND VALUE #( %tky = travel-%tky ) TO failed-travel.
+
+        APPEND VALUE #( %tky = travel-%tky
+                        %msg = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = |Not A Valid AgencyId { travel-CustomerId } | )
+                       %element-customerid  = if_abap_behv=>mk-on )  TO reported-travel.
+
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD ValidateDates.
+
+    READ ENTITIES OF z23_travel_i IN LOCAL MODE
+    ENTITY Travel
+    FIELDS ( BeginDate EndDate )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(travels).
+
+    LOOP AT travels INTO DATA(travel).
+
+      IF travel-BeginDate IS INITIAL.
+
+        APPEND VALUE #( %tky = travel-%tky ) TO failed-travel.
+
+        APPEND VALUE #( %tky = travel-%tky
+                        %msg = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = |Begin Date Should not be blank| )
+                       %element-begindate   = if_abap_behv=>mk-on )  TO reported-travel.
+
+
+      ENDIF.
+
+      IF travel-EndDate IS INITIAL.
+
+        APPEND VALUE #( %tky = travel-%tky ) TO failed-travel.
+
+        APPEND VALUE #( %tky = travel-%tky
+                        %msg = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = |End Date Should not be blank| )
+                       %element-enddate     = if_abap_behv=>mk-on )  TO reported-travel.
+
+      ENDIF.
+
+      IF travel-EndDate < travel-BeginDate AND travel-BeginDate IS NOT INITIAL AND travel-EndDate IS NOT INITIAL.
+
+        APPEND VALUE #( %tky = travel-%tky ) TO failed-travel.
+        APPEND VALUE #( %tky = travel-%tky
+                        %msg = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = |End Date Should not be lessthan BeginDate| )
+                       %element-begindate   = if_abap_behv=>mk-on )  TO reported-travel.
+
+      ENDIF.
+
+
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD get_instance_features.
+
+    READ ENTITIES OF z23_travel_i IN LOCAL MODE
+    ENTITY Travel
+    FIELDS ( OverallStatus )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(travels).
+
+    result = VALUE #( FOR ls_travel IN travels
+                    ( %tky = ls_travel-%tky
+                      %field-BookingFee    = COND #( WHEN ls_travel-OverallStatus = 'A'
+                                                     THEN if_abap_behv=>fc-f-read_only
+                                                     ELSE if_abap_behv=>fc-f-unrestricted )
+
+                      %action-AcceptTravel = COND #( WHEN ls_travel-OverallStatus = 'R'
+                                                     THEN if_abap_behv=>fc-o-disabled
+                                                     ELSE if_abap_behv=>fc-o-enabled )
+
+                      %action-RejectTravel = COND #( WHEN ls_travel-OverallStatus = 'A'
+                                                     THEN if_abap_behv=>fc-o-disabled
+                                                     ELSE if_abap_behv=>fc-o-enabled )
+                    )  ).
+
+
+
 
   ENDMETHOD.
 

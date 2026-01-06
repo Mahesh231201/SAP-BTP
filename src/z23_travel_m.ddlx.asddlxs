@@ -39,9 +39,11 @@ annotate entity Z23_TRAVEL_C with
   TravelId;
   @UI.lineItem: [{ position: 20, importance: #HIGH }]
   @UI.identification: [{ position: 20, importance: #HIGH }]
+  @Consumption.valueHelpDefinition: [{ entity:{name: '/DMO/I_Agency_StdVH', element: 'AgencyID' } }]              //  ValueHelp => F4 Help
   AgencyId;
   @UI.lineItem: [{ position: 30, importance: #HIGH }]
   @UI.identification: [{ position: 30, importance: #HIGH }]
+  @Consumption.valueHelpDefinition: [ { entity:{ name: '/DMO/I_Customer_StdVH',element: 'CustomerID'  } } ]     //  ValueHelp => F4 Help
   CustomerId;
   @UI.lineItem: [{ position: 40, importance: #HIGH }]
   @UI.identification: [{ position: 40, importance: #HIGH }]
@@ -55,7 +57,8 @@ annotate entity Z23_TRAVEL_C with
   @UI.lineItem: [{ position: 70, importance: #HIGH }]
   @UI.identification: [{ position: 70, importance: #LOW }]
   TotalPrice;
-  // CurrencyCode;
+  @Consumption.valueHelpDefinition: [{ entity:{ name: 'I_CurrencyStdVH',element: 'Currency' } }] //   //  ValueHelp => F4 Help
+  CurrencyCode;
   @UI.lineItem: [{ position: 80, importance: #LOW }]
   @UI.identification: [{ position: 80, importance: #HIGH }]
   Description;

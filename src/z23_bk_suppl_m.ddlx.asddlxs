@@ -21,14 +21,15 @@ annotate entity Z23_BK_SUPPL_C with
   @UI.lineItem: [{ position: 10,importance: #HIGH }]
   @UI.identification: [{ position: 10,importance: #HIGH  }]
   BookingSupplementId;
-  @UI.lineItem: [{ position: 10,importance: #HIGH }]
-  @UI.identification: [{ position: 10,importance: #HIGH  }]
+  @UI.lineItem: [{ position: 20,importance: #HIGH }]
+  @UI.identification: [{ position: 20,importance: #HIGH  }]
+  @Consumption.valueHelpDefinition: [ { entity:{ name: '/DMO/I_Supplement_StdVH',element: 'SupplementID'  } } ]     //  ValueHelp => F4 Help
   SupplementId;
-  @UI.lineItem: [{ position: 10,importance: #HIGH }]
-  @UI.identification: [{ position: 10,importance: #HIGH  }]
+  @UI.lineItem: [{ position: 30,importance: #HIGH }]
+  @UI.identification: [{ position: 30,importance: #HIGH  }]
   Price;
-
-  //   CurrencyCode;
+  @Consumption.valueHelpDefinition: [{ entity:{ name: 'I_CurrencyStdVH',element: 'Currency' } }] //    ValueHelp => F4 Help
+  CurrencyCode;
   //   LocalLastChangedAt;
   //   /* Associations */
   //   _booking;
